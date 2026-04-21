@@ -11,9 +11,17 @@ import {
 import { db } from '@/lib/firebase'
 import type { InviteCode } from '@/lib/types'
 import { addHours } from 'date-fns'
+import { INVITE_CODE_LENGTH, normalizeInviteCode } from '@/lib/inviteCode'
+
+const INVITE_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 
 function randomCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase()
+  let code = ''
+  for (let i = 0; i < INVITE_CODE_LENGTH; i++) {
+    const idx = Math.floor(Math.random() * INVITE_CODE_ALPHABET.length)
+    code += INVITE_CODE_ALPHABET[idx]
+  }
+  return code
 }
 
 export async function generateInviteCode(creatorId: string, challengeId: string): Promise<string> {
@@ -59,7 +67,9 @@ export async function getActiveInviteCodeForUser(
 }
 
 export async function getInviteCode(code: string): Promise<InviteCode | null> {
-  const ref = doc(db, 'inviteCodes', code.toUpperCase())
+  const normalized = normalizeInviteCode(code)
+  if (normalized.length !== INVITE_CODE_LENGTH) return null
+  const ref = doc(db, 'inviteCodes', normalized)
   const snap = await getDoc(ref)
   if (!snap.exists()) return null
   return snap.data() as InviteCode
@@ -69,7 +79,11 @@ export async function claimInviteCode(
   code: string,
   joiningUserId: string
 ): Promise<{ challengeId: string; creatorId: string }> {
-  const ref = doc(db, 'inviteCodes', code.toUpperCase())
+  const normalized = normalizeInviteCode(code)
+  if (normalized.length !== INVITE_CODE_LENGTH) {
+    throw new Error('Enter a valid 6-character code')
+  }
+  const ref = doc(db, 'inviteCodes', normalized)
 
   const result = await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref)
