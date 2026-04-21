@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TrackPair
 
-## Getting Started
+TrackPair is a two-person accountability challenge app built with Next.js + Firebase.
 
-First, run the development server:
+## Local Development
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Copy env template and fill values:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Start dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deploy to Vercel
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This repo is configured for Vercel (`vercel.json` included).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1) Import project
 
-## Learn More
+- Go to [Vercel](https://vercel.com/new)
+- Import this GitHub repository
+- Framework should auto-detect as **Next.js**
 
-To learn more about Next.js, take a look at the following resources:
+### 2) Set environment variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+In Vercel Project Settings -> Environment Variables, add all values from `.env.example`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+- `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` (optional)
+- `ANTHROPIC_API_KEY` (if you use Anthropic features)
 
-## Deploy on Vercel
+### 3) Firebase Auth domain setup (required)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+After first deploy, add your Vercel domain(s) in Firebase Console:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Firebase Console -> Authentication -> Settings -> Authorized domains
+- Add:
+  - `your-project.vercel.app`
+  - your custom production domain (if any)
+
+Without this, Firebase sign-in can fail in production.
+
+### 4) Deploy Firestore config (rules + indexes)
+
+From this repo:
+
+```bash
+firebase deploy --only firestore --project track-app-95f63
+```
+
+This deploys:
+- `firestore.rules`
+- `firestore.indexes.json`
+
+### 5) Deploy app
+
+Push to `main` (or click Deploy in Vercel).
+
+## Test & Lint
+
+```bash
+npm run lint
+npm run test
+```

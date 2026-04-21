@@ -1,0 +1,89 @@
+import {
+  doc,
+  getDoc,
+  setDoc,
+  runTransaction,
+  query,
+  collection,
+  where,
+  getDocs,
+} from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import type { InviteCode } from '@/lib/types'
+import { addHours } from 'date-fns'
+
+function randomCode(): string {
+  return Math.random().toString(36).substring(2, 8).toUpperCase()
+}
+
+export async function generateInviteCode(creatorId: string, challengeId: string): Promise<string> {
+  let attempts = 0
+  while (attempts < 3) {
+    const code = randomCode()
+    const ref = doc(db, 'inviteCodes', code)
+    const existing = await getDoc(ref)
+
+    if (!existing.exists()) {
+      const inviteCode: InviteCode = {
+        code,
+        creatorId,
+        challengeId,
+        used: false,
+        expiresAt: addHours(new Date(), 24).toISOString(),
+      }
+      await setDoc(ref, inviteCode)
+      return code
+    }
+    attempts++
+  }
+  throw new Error('Failed to generate unique invite code')
+}
+
+export async function getActiveInviteCodeForUser(
+  creatorId: string,
+  challengeId: string
+): Promise<string | null> {
+  const q = query(
+    collection(db, 'inviteCodes'),
+    where('creatorId', '==', creatorId),
+    where('used', '==', false)
+  )
+  const snap = await getDocs(q)
+  const now = new Date()
+  for (const d of snap.docs) {
+    const data = d.data() as InviteCode
+    if (data.challengeId !== challengeId) continue
+    if (new Date(data.expiresAt) > now) return data.code
+  }
+  return null
+}
+
+export async function getInviteCode(code: string): Promise<InviteCode | null> {
+  const ref = doc(db, 'inviteCodes', code.toUpperCase())
+  const snap = await getDoc(ref)
+  if (!snap.exists()) return null
+  return snap.data() as InviteCode
+}
+
+export async function claimInviteCode(
+  code: string,
+  joiningUserId: string
+): Promise<{ challengeId: string; creatorId: string }> {
+  const ref = doc(db, 'inviteCodes', code.toUpperCase())
+
+  const result = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) throw new Error('Invite code not found')
+
+    const data = snap.data() as InviteCode
+    if (new Date(data.expiresAt) < new Date()) throw new Error('Invite code expired')
+    if (data.creatorId === joiningUserId) throw new Error('You cannot join your own challenge')
+    // Allow retry: if already claimed by this same user, let them proceed
+    if (data.used && data.claimedBy !== joiningUserId) throw new Error('Invite code already used')
+
+    tx.update(ref, { used: true, claimedBy: joiningUserId })
+    return { challengeId: data.challengeId, creatorId: data.creatorId }
+  })
+
+  return result
+}

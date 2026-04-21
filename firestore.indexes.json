@@ -1,0 +1,42 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "meals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "challengeId", "order": "ASCENDING" },
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "meals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "challengeId", "order": "ASCENDING" },
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "meals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "challengeId", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" },
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "meals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "challengeId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

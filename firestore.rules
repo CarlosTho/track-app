@@ -1,0 +1,59 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users: read/write own doc; any authenticated user can set partnerId on another user
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['partnerId'])
+      );
+    }
+
+    // Challenges: read if member or authenticated (needed to join), write to create/join
+    match /challenges/{challengeId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.users[0];
+      allow update: if request.auth != null &&
+        (request.auth.uid in resource.data.users ||
+         request.auth.uid == request.resource.data.users[1]);
+    }
+
+    // Invite codes: anyone authenticated can read (to join), creator can write
+    match /inviteCodes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.creatorId;
+      allow update: if request.auth != null;
+    }
+
+    // Meals: any authenticated user can read (queries filter by challengeId);
+    // only own user can create/delete their meals
+    match /meals/{mealId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+      allow delete: if request.auth != null &&
+        request.auth.uid == resource.data.userId;
+    }
+
+    // Streaks: any authenticated user can read, own user can write
+    match /streaks/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Login streaks: any authenticated user can read, own user can write
+    match /loginStreaks/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+  }
+}
