@@ -26,14 +26,6 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "(function(){try{if(localStorage.getItem('trackpair.melonThemeUnlocked')==='1'){document.documentElement.classList.add('melon-theme')}}catch(e){}})();",
-          }}
-        />
-      </head>
       <body className={`${inter.className} ${dmSans.variable} ${syne.variable}`}>
         <AuthProvider>
           <MelonThemeManager />

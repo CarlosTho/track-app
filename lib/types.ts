@@ -3,6 +3,7 @@ export interface UserDoc {
   name: string
   email: string
   photoUrl?: string
+  uiTheme?: 'orange' | 'melon'
   partnerId?: string
   challengeId?: string
   createdAt: string

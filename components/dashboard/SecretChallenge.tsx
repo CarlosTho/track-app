@@ -1,47 +1,49 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, Sparkles } from 'lucide-react'
-import {
-  MELON_WORD,
-  MELON_THEME_EVENT,
-  MELON_THEME_KEY,
-  isMelonThemeUnlocked,
-  setMelonThemeUnlocked,
-} from '@/lib/melonTheme'
+import { MELON_WORD } from '@/lib/melonTheme'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { updateUserDoc } from '@/lib/firestore/users'
 
 export function SecretChallenge() {
+  const { user, userDoc } = useAuth()
   const [value, setValue] = useState('')
   const [tries, setTries] = useState(0)
-  const [unlocked, setUnlocked] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const unlocked = userDoc?.uiTheme === 'melon'
 
   useEffect(() => {
-    const sync = () => setUnlocked(isMelonThemeUnlocked())
-    sync()
-
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === MELON_THEME_KEY) sync()
-    }
-    window.addEventListener('storage', onStorage)
-    window.addEventListener(MELON_THEME_EVENT, sync)
     return () => {
-      window.removeEventListener('storage', onStorage)
-      window.removeEventListener(MELON_THEME_EVENT, sync)
+      if (confettiTimer.current) clearTimeout(confettiTimer.current)
     }
   }, [])
 
-  const handleGuess = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!unlocked) return
+    setValue('')
+  }, [unlocked])
+
+  const handleGuess = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (unlocked) return
+    if (unlocked || !user || saving) return
     setTries((t) => t + 1)
     if (value.trim().toLowerCase() === MELON_WORD) {
-      setMelonThemeUnlocked(true)
-      setUnlocked(true)
-      setShowConfetti(true)
-      setTimeout(() => setShowConfetti(false), 2200)
+      setSaving(true)
+      try {
+        await updateUserDoc(user.uid, { uiTheme: 'melon' })
+        setShowConfetti(true)
+        if (confettiTimer.current) clearTimeout(confettiTimer.current)
+        confettiTimer.current = setTimeout(() => setShowConfetti(false), 2200)
+      } catch (err) {
+        console.warn('Failed to save melon theme:', err)
+      } finally {
+        setSaving(false)
+      }
     }
   }
 
@@ -82,10 +84,18 @@ export function SecretChallenge() {
             variant="outline"
             size="sm"
             className="border-pink-300 text-pink-600 hover:bg-pink-100"
-            onClick={() => {
-              setMelonThemeUnlocked(false)
-              setUnlocked(false)
-              setValue('')
+            disabled={!user || saving}
+            onClick={async () => {
+              if (!user || saving) return
+              setSaving(true)
+              try {
+                await updateUserDoc(user.uid, { uiTheme: 'orange' })
+                setValue('')
+              } catch (err) {
+                console.warn('Failed to reset theme:', err)
+              } finally {
+                setSaving(false)
+              }
             }}
           >
             Change it back
@@ -100,7 +110,7 @@ export function SecretChallenge() {
             className="sm:max-w-xs"
           />
           <Button type="submit" className="bg-orange-500 hover:bg-orange-600">
-            Try
+            {saving ? 'Saving...' : 'Try'}
           </Button>
           <span className="text-xs text-gray-400 self-center">Unlimited tries {tries > 0 ? `· ${tries}` : ''}</span>
         </form>

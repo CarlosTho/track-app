@@ -30,6 +30,7 @@ import { updateUserDoc } from '@/lib/firestore/users'
 import { getUserDisplayName } from '@/lib/userDisplay'
 import { useRouter } from 'next/navigation'
 import { Copy, Check, X, Flame, Trophy } from 'lucide-react'
+import { toast } from 'sonner'
 
 function DashboardContent() {
   const { user, userDoc } = useAuth()
@@ -85,11 +86,17 @@ function DashboardContent() {
       await endChallenge(challenge.id)
       await resetLoginStreak(user.uid)
       await updateUserDoc(user.uid, { challengeId: undefined, partnerId: undefined })
-      if (partner?.id) {
-        // Rules only allow editing another user's partnerId, not their challengeId.
-        await updateUserDoc(partner.id, { partnerId: undefined })
+      if (partner?.id && partner.id !== user.uid) {
+        // Partner cleanup is best-effort because some Firestore rulesets only allow self-updates.
+        updateUserDoc(partner.id, { challengeId: undefined, partnerId: undefined }).catch((err) => {
+          console.warn('Partner challenge cleanup failed:', err)
+        })
       }
+      toast.success('Challenge ended.')
       router.push('/invite')
+    } catch (err) {
+      console.error('Failed to end challenge:', err)
+      toast.error('Could not end challenge. Please try again.')
     } finally {
       setEnding(false)
     }
