@@ -280,7 +280,7 @@ function DashboardContent() {
             <p className="text-sm font-medium text-gray-500 mt-0.5">
               Today — {easternFormat(new Date(), 'MMM d, yyyy')}
             </p>
-            <p className="mt-2 mb-1 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-[0.95rem] font-semibold text-orange-800">
+            <p className="hidden sm:block mt-2 mb-1 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-[0.95rem] font-semibold text-orange-800">
               Reminder: {dayReminder}
             </p>
           </div>
@@ -300,6 +300,9 @@ function DashboardContent() {
             </Link>
           </div>
         </div>
+        <p className="sm:hidden mt-3 mb-1 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-[0.95rem] font-semibold text-orange-800">
+          Reminder: {dayReminder}
+        </p>
       </div>
 
       <ChallengeProgress challenge={challenge} />
