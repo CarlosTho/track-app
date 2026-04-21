@@ -12,7 +12,7 @@ import { UserColumn } from '@/components/dashboard/UserColumn'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 import { ChallengeProgress } from '@/components/dashboard/ChallengeProgress'
 import { SecretChallenge } from '@/components/dashboard/SecretChallenge'
-import { easternFormat } from '@/lib/easternTime'
+import { challengeDayProgress, easternFormat } from '@/lib/easternTime'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,6 +31,23 @@ import { getUserDisplayName } from '@/lib/userDisplay'
 import { useRouter } from 'next/navigation'
 import { Copy, Check, X, Flame, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
+
+const DAY_REMINDERS = [
+  "You decided to start. That's already more than most people do.",
+  "Yesterday wasn't a fluke. Prove it.",
+  "Three days in is where most people quit. Don't be most people.",
+  'Motivation got you started. Discipline takes it from here.',
+  "You're not building a streak. You're building a person.",
+  'Almost a week. The habit is starting to choose you back.',
+  'One week down. You just proved to yourself that you can.',
+  "The second week is where it gets real. You're ready.",
+  "Show up even when it's boring. Especially when it's boring.",
+  "Double digits. You're not trying anymore - you're doing.",
+  'The version of you from Day 1 is watching. Make them proud.',
+  "You're closer to the finish than the start. Don't coast.",
+  'One day left. This is where legends are built, not born.',
+  "You did it. Now the question is: what's next?",
+] as const
 
 function DashboardContent() {
   const { user, userDoc } = useAuth()
@@ -231,6 +248,9 @@ function DashboardContent() {
     if (hour < 17) return 'Good afternoon'
     return 'Good evening'
   })()
+  const { currentDay } = challengeDayProgress(challenge.startDate, challenge.endDate)
+  const reminderIndex = Math.max(0, Math.min(DAY_REMINDERS.length - 1, currentDay - 1))
+  const dayReminder = DAY_REMINDERS[reminderIndex]
 
   const firstName = (userDoc?.name ?? user?.displayName ?? '').split(' ')[0]
   const streakCount = myStreak?.currentStreak ?? 0
@@ -259,6 +279,9 @@ function DashboardContent() {
             </h1>
             <p className="text-sm font-medium text-gray-500 mt-0.5">
               Today — {easternFormat(new Date(), 'MMM d, yyyy')}
+            </p>
+            <p className="text-sm font-medium text-gray-700 mt-1">
+              Reminder: {dayReminder}
             </p>
           </div>
           <div className="flex gap-2">
