@@ -158,7 +158,7 @@ function ProgressContent() {
   }, [challenge, partner])
 
   useEffect(() => {
-    if (!challenge || challenge.status === 'completed') return
+    if (!challenge || challenge.status !== 'active') return
     const endAt = getChallengeEndAt(challenge)
     const msLeft = endAt.getTime() - Date.now()
     if (msLeft <= 0) return
@@ -199,7 +199,21 @@ function ProgressContent() {
 
   const { totalDays, currentDay } = challengeDayProgress(challenge.startDate, challenge.endDate)
   void timeTick
-  const isTimeComplete = isChallengeTimeComplete(challenge)
+  const isTimeComplete = challenge.status === 'active' && isChallengeTimeComplete(challenge)
+
+  if (challenge.status === 'cancelled') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Challenge Ended</h2>
+          <p className="text-gray-500 mb-6">This challenge was ended early.</p>
+          <Link href="/invite">
+            <Button className="bg-orange-500 hover:bg-orange-600">Start a New Challenge</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   // Show congratulations screen if challenge is completed
   if (challenge.status === 'completed' || isTimeComplete) {

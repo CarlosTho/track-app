@@ -24,7 +24,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getActiveInviteCodeForUser, generateInviteCode } from '@/lib/firestore/inviteCodes'
-import { endChallenge, isChallengeActiveNow, isChallengeTimeComplete } from '@/lib/firestore/challenges'
+import { cancelChallenge, isChallengeActiveNow, isChallengeTimeComplete } from '@/lib/firestore/challenges'
 import { resetLoginStreak } from '@/lib/firestore/loginStreak'
 import { updateUserDoc } from '@/lib/firestore/users'
 import { getUserDisplayName } from '@/lib/userDisplay'
@@ -83,7 +83,7 @@ function DashboardContent() {
     if (!user || !challenge) return
     setEnding(true)
     try {
-      await endChallenge(challenge.id)
+      await cancelChallenge(challenge.id)
       await resetLoginStreak(user.uid)
       await updateUserDoc(user.uid, { challengeId: undefined, partnerId: undefined })
       if (partner?.id && partner.id !== user.uid) {
@@ -123,7 +123,8 @@ function DashboardContent() {
   }
 
   const challengeCompleted = !!challenge && (
-    challenge.status === 'completed' || isChallengeTimeComplete(challenge)
+    challenge.status === 'completed' ||
+    (challenge.status === 'active' && isChallengeTimeComplete(challenge))
   )
 
   useEffect(() => {

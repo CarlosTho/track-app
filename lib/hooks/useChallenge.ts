@@ -5,7 +5,7 @@ import { doc, onSnapshot } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { Challenge, UserDoc } from '@/lib/types'
 import { useAuth } from './useAuth'
-import { endChallenge, getChallengeEndAt, isChallengeActiveNow } from '@/lib/firestore/challenges'
+import { completeChallenge, getChallengeEndAt, isChallengeActiveNow } from '@/lib/firestore/challenges'
 
 interface UseChallengeReturn {
   challenge: Challenge | null
@@ -76,9 +76,9 @@ export function useChallenge(): UseChallengeReturn {
     const runEnd = () => {
       if (autoEndingRef.current) return
       autoEndingRef.current = true
-      endChallenge(challenge.id)
+      completeChallenge(challenge.id)
         .catch((err) => {
-          console.warn('auto endChallenge failed:', err)
+          console.warn('auto completeChallenge failed:', err)
           autoEndingRef.current = false
         })
     }

@@ -90,10 +90,17 @@ export async function joinChallenge(challengeId: string, userId: string): Promis
   await updateDoc(ref, { users: updatedUsers })
 }
 
-export async function endChallenge(challengeId: string): Promise<void> {
+export async function completeChallenge(challengeId: string): Promise<void> {
   const ref = doc(db, 'challenges', challengeId)
   await updateDoc(ref, {
     status: 'completed',
     completedAt: new Date().toISOString(),
+  })
+}
+
+export async function cancelChallenge(challengeId: string): Promise<void> {
+  const ref = doc(db, 'challenges', challengeId)
+  await updateDoc(ref, {
+    status: 'cancelled',
   })
 }
