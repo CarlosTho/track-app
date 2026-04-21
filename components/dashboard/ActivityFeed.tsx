@@ -166,20 +166,20 @@ function FeedItem({ meal, user, currentUserId }: FeedEntry & { currentUserId: st
         )}
       </div>
       {isOwner && (
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <button
             onClick={() => { setEditDesc(meal.description); setEditCompliant(meal.isCompliant); setEditing(true) }}
-            className="text-gray-300 hover:text-orange-400 p-1"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-gray-600 hover:bg-orange-100 hover:text-orange-600"
             aria-label="Edit meal"
           >
-            <Pencil className="w-3.5 h-3.5" />
+            <Pencil className="w-4 h-4" />
           </button>
           <button
             onClick={handleDelete}
-            className="text-gray-300 hover:text-red-400 p-1"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600"
             aria-label="Delete meal"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       )}

@@ -54,7 +54,7 @@ export function MealCard({ meal, isCurrentUser }: MealCardProps) {
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="text-gray-300 hover:text-red-400 transition-colors disabled:opacity-50"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 transition-colors disabled:opacity-50"
             aria-label="Delete meal"
           >
             <Trash2 className="w-4 h-4" />
