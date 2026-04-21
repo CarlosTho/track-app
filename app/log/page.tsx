@@ -35,7 +35,7 @@ function LogContent() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:py-6">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/dashboard">
           <Button variant="ghost" size="sm" className="text-gray-500">
