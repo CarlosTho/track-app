@@ -22,6 +22,7 @@ function useInView(threshold = 0.15) {
 }
 
 const DURATION_WORDS = ['1-week', '30-day', '2-week', '90-day']
+const COMPANION_WORDS = ['friends', 'partner', 'family']
 
 function HeroDuration() {
   const [idx, setIdx] = useState(0)
@@ -56,6 +57,41 @@ function HeroDuration() {
         }}
       >
         {DURATION_WORDS[idx]}
+      </span>
+    </span>
+  )
+}
+
+function HeroCompanion() {
+  const [idx, setIdx] = useState(0)
+  const [visible, setVisible] = useState(true)
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setVisible(false)
+      setTimeout(() => {
+        setIdx((i) => (i + 1) % COMPANION_WORDS.length)
+        setVisible(true)
+      }, 320)
+    }, 2800)
+    return () => clearInterval(tick)
+  }, [])
+
+  return (
+    <span className="relative inline-block align-baseline" style={{ minWidth: '8.2ch' }}>
+      <span aria-hidden className="invisible whitespace-nowrap">
+        friends
+      </span>
+      <span
+        aria-live="polite"
+        className="absolute inset-0 whitespace-nowrap transition-all duration-[320ms] ease-out"
+        style={{
+          color: 'var(--tp-orange)',
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'translateY(0)' : 'translateY(8px)',
+        }}
+      >
+        {COMPANION_WORDS[idx]}
       </span>
     </span>
   )
@@ -551,7 +587,8 @@ export default function LandingPage() {
             Start a <HeroDuration />{' '}
             <span className="inline-block pb-[0.08em]">challenge</span>
             <br />
-            <span style={{ color: 'var(--tp-orange)' }}>with someone.</span>
+            <span style={{ color: 'var(--tp-text)' }}>with your </span>
+            <HeroCompanion />
           </h1>
 
           <p
