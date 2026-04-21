@@ -295,9 +295,6 @@ function DashboardContent() {
                 {ending ? 'Ending...' : 'End Challenge'}
               </Button>
             )}
-            <Link href="/log">
-              <Button className="bg-orange-500 hover:bg-orange-600">+ Log Meal</Button>
-            </Link>
           </div>
         </div>
         <p className="sm:hidden mt-3 mb-1 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-[0.95rem] font-semibold text-orange-800">
