@@ -11,7 +11,7 @@ export interface UserDoc {
 
 export interface Challenge {
   id: string
-  users: [string, string]
+  users: string[]
   durationDays?: number
   createdAt?: string
   startAt?: string

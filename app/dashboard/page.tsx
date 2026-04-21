@@ -7,7 +7,7 @@ import { useChallenge } from '@/lib/hooks/useChallenge'
 import { useTodaysMeals } from '@/lib/hooks/useMeals'
 import { subscribeMealsForDateRange } from '@/lib/firestore/meals'
 import { computeMealStreaks } from '@/lib/streaks'
-import type { Meal } from '@/lib/types'
+import type { Meal, UserDoc } from '@/lib/types'
 import { UserColumn } from '@/components/dashboard/UserColumn'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 import { ChallengeProgress } from '@/components/dashboard/ChallengeProgress'
@@ -34,11 +34,11 @@ import { toast } from 'sonner'
 
 function DashboardContent() {
   const { user, userDoc } = useAuth()
-  const { challenge, partner, loading: challengeLoading } = useChallenge()
+  const { challenge, partners, loading: challengeLoading } = useChallenge()
   const { meals: myMeals } = useTodaysMeals(challenge?.id, user?.uid)
-  const { meals: partnerMeals } = useTodaysMeals(challenge?.id, partner?.id)
   const [myAllMeals, setMyAllMeals] = useState<Meal[]>([])
-  const [partnerAllMeals, setPartnerAllMeals] = useState<Meal[]>([])
+  const [partnerMealsMap, setPartnerMealsMap] = useState<Record<string, Meal[]>>({})
+  const [partnerAllMealsMap, setPartnerAllMealsMap] = useState<Record<string, Meal[]>>({})
   const router = useRouter()
 
   useEffect(() => {
@@ -53,24 +53,43 @@ function DashboardContent() {
   }, [challenge, user])
 
   useEffect(() => {
-    if (!challenge || !partner) return
-    return subscribeMealsForDateRange(
-      challenge.id,
-      partner.id,
-      challenge.startDate,
-      challenge.endDate,
-      setPartnerAllMeals
+    if (!challenge || partners.length === 0) {
+      setPartnerMealsMap({})
+      setPartnerAllMealsMap({})
+      return
+    }
+
+    const unsubscribes = partners.map((member) =>
+      subscribeMealsForDateRange(
+        challenge.id,
+        member.id,
+        challenge.startDate,
+        challenge.endDate,
+        (meals) => {
+          setPartnerAllMealsMap((prev) => ({ ...prev, [member.id]: meals }))
+          const today = easternFormat(new Date(), 'yyyy-MM-dd')
+          setPartnerMealsMap((prev) => ({ ...prev, [member.id]: meals.filter((m) => m.date === today) }))
+        }
+      )
     )
-  }, [challenge, partner])
+
+    return () => {
+      unsubscribes.forEach((unsub) => unsub?.())
+    }
+  }, [challenge, partners])
 
   const myStreak = useMemo(
     () => (challenge ? computeMealStreaks(myAllMeals, challenge.startDate, challenge.endDate) : null),
     [myAllMeals, challenge?.startDate, challenge?.endDate]
   )
-  const partnerStreak = useMemo(
-    () => (challenge ? computeMealStreaks(partnerAllMeals, challenge.startDate, challenge.endDate) : null),
-    [partnerAllMeals, challenge?.startDate, challenge?.endDate]
-  )
+  const partnerStreakById = useMemo(() => {
+    if (!challenge) return {}
+    const entries = partners.map((member) => {
+      const meals = partnerAllMealsMap[member.id] ?? []
+      return [member.id, computeMealStreaks(meals, challenge.startDate, challenge.endDate)]
+    })
+    return Object.fromEntries(entries) as Record<string, ReturnType<typeof computeMealStreaks>>
+  }, [partners, partnerAllMealsMap, challenge?.startDate, challenge?.endDate])
   const [inviteCode, setInviteCode] = useState<string | null>(null)
   const [showCodeModal, setShowCodeModal] = useState(false)
   const [loadingCode, setLoadingCode] = useState(false)
@@ -79,19 +98,20 @@ function DashboardContent() {
   const [showCongratsPopup, setShowCongratsPopup] = useState(false)
 
   const handleEndChallenge = async () => {
-    if (!confirm('End this challenge? Both users will be able to start a new one.')) return
+    if (!confirm('End this challenge? All members will be able to start a new one.')) return
     if (!user || !challenge) return
     setEnding(true)
     try {
       await cancelChallenge(challenge.id)
       await resetLoginStreak(user.uid)
       await updateUserDoc(user.uid, { challengeId: undefined, partnerId: undefined })
-      if (partner?.id && partner.id !== user.uid) {
-        // Partner cleanup is best-effort because some Firestore rulesets only allow self-updates.
-        updateUserDoc(partner.id, { challengeId: undefined, partnerId: undefined }).catch((err) => {
+      partners.forEach((member) => {
+        if (member.id === user.uid) return
+        // Firestore rules allow non-self writes for partnerId only.
+        updateUserDoc(member.id, { partnerId: undefined }).catch((err) => {
           console.warn('Partner challenge cleanup failed:', err)
         })
-      }
+      })
       toast.success('Challenge ended.')
       router.push('/invite')
     } catch (err) {
@@ -126,6 +146,7 @@ function DashboardContent() {
     challenge.status === 'completed' ||
     (challenge.status === 'active' && isChallengeTimeComplete(challenge))
   )
+  const challengeEnded = challenge?.status === 'cancelled'
 
   useEffect(() => {
     if (!challengeCompleted || !challenge || typeof window === 'undefined') return
@@ -173,12 +194,14 @@ function DashboardContent() {
         <div className="min-h-screen flex items-center justify-center px-4">
           <div className="text-center">
             <h2 className="text-xl font-bold text-gray-900 mb-2">
-              {challengeCompleted ? 'Challenge Complete' : 'No Active Challenge'}
+              {challengeCompleted ? 'Challenge Complete' : challengeEnded ? 'Challenge Ended' : 'No Active Challenge'}
             </h2>
             <p className="text-gray-500 mb-6">
               {challengeCompleted
                 ? 'Nice work — your results are ready.'
-                : 'Start a challenge with a partner to see your dashboard.'}
+                : challengeEnded
+                  ? 'This challenge was ended early. Start a new one anytime.'
+                  : 'Start a challenge with a partner to see your dashboard.'}
             </p>
             {challengeCompleted ? (
               <Link href="/progress">
@@ -211,7 +234,7 @@ function DashboardContent() {
 
   const firstName = (userDoc?.name ?? user?.displayName ?? '').split(' ')[0]
   const streakCount = myStreak?.currentStreak ?? 0
-  const partnerStreakCount = partnerStreak?.currentStreak ?? 0
+  const partnerCount = partners.length
   const isChallengeCreator = challenge.users[0] === user?.uid
   const shouldPromptMealLog = myMeals.length === 0
 
@@ -244,9 +267,11 @@ function DashboardContent() {
                 {loadingCode ? 'Loading...' : 'Share Code'}
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={handleEndChallenge} disabled={ending} className="text-red-500 border-red-200 hover:bg-red-50">
-              {ending ? 'Ending...' : 'End Challenge'}
-            </Button>
+            {isChallengeCreator && (
+              <Button variant="outline" size="sm" onClick={handleEndChallenge} disabled={ending} className="text-red-500 border-red-200 hover:bg-red-50">
+                {ending ? 'Ending...' : 'End Challenge'}
+              </Button>
+            )}
             <Link href="/log">
               <Button className="bg-orange-500 hover:bg-orange-600">+ Log Meal</Button>
             </Link>
@@ -273,24 +298,28 @@ function DashboardContent() {
           />
         </div>
 
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          {partner ? (
-            <UserColumn
-              name={getUserDisplayName(partner)}
-              photoUrl={partner.photoUrl}
-              meals={partnerMeals}
-              streakCount={partnerStreakCount}
-              isCurrentUser={false}
-            />
-          ) : (
+        {partners.length > 0 ? (
+          partners.map((member: UserDoc) => (
+            <div key={member.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <UserColumn
+                name={getUserDisplayName(member)}
+                photoUrl={member.photoUrl}
+                meals={partnerMealsMap[member.id] ?? []}
+                streakCount={partnerStreakById[member.id]?.currentStreak ?? 0}
+                isCurrentUser={false}
+              />
+            </div>
+          ))
+        ) : (
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
             <div className="flex flex-col items-center justify-center h-48 text-center">
-              <p className="text-gray-400 text-sm mb-4">Waiting for your partner to join...</p>
+              <p className="text-gray-400 text-sm mb-4">Waiting for others to join...</p>
               <Button variant="outline" size="sm" onClick={handleShareCode} disabled={loadingCode}>
                 {loadingCode ? 'Loading...' : 'Share Invite Code'}
               </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
       {showCodeModal && inviteCode && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
@@ -313,6 +342,10 @@ function DashboardContent() {
         </div>
       )}
       </div>
+
+      {partnerCount > 1 && (
+        <p className="mt-4 text-xs text-gray-500">Active members: You + {partnerCount} others</p>
+      )}
 
       <div className="md:hidden mt-6 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <h2 className="font-semibold text-gray-900 mb-4">Activity Feed</h2>

@@ -4,6 +4,7 @@ import {
   setDoc,
   updateDoc,
   collection,
+  runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { Challenge } from '@/lib/types'
@@ -58,7 +59,7 @@ export async function createChallenge(
 
   const challenge: Omit<Challenge, 'id'> & { id: string } = {
     id: ref.id,
-    users: [creatorId, ''],
+    users: [creatorId],
     durationDays,
     createdAt,
     startAt,
@@ -82,12 +83,20 @@ export async function getChallenge(challengeId: string): Promise<Challenge | nul
 
 export async function joinChallenge(challengeId: string, userId: string): Promise<void> {
   const ref = doc(db, 'challenges', challengeId)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) throw new Error('Challenge not found')
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) throw new Error('Challenge not found')
 
-  const challenge = snap.data() as Challenge
-  const updatedUsers: [string, string] = [challenge.users[0], userId]
-  await updateDoc(ref, { users: updatedUsers })
+    const challenge = snap.data() as Challenge
+    const currentUsers = (challenge.users ?? []).filter(Boolean)
+    if (currentUsers.includes(userId)) return
+    const creatorId = currentUsers[0]
+    if (!creatorId) throw new Error('Challenge has no creator')
+    const otherMembers = currentUsers.filter((uid) => uid !== creatorId && uid !== userId)
+    // Keep creator first, put joiner in index 1 to satisfy current Firestore rules, preserve others after.
+    const updatedUsers = [creatorId, userId, ...otherMembers]
+    tx.update(ref, { users: updatedUsers })
+  })
 }
 
 export async function completeChallenge(challengeId: string): Promise<void> {

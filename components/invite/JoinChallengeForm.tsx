@@ -29,7 +29,6 @@ export function JoinChallengeForm({ userId }: JoinChallengeFormProps) {
       const { challengeId, creatorId } = await claimInviteCode(normalizedCode, userId)
       await joinChallenge(challengeId, userId)
       await updateUserDoc(userId, { challengeId, partnerId: creatorId })
-      await updateUserDoc(creatorId, { partnerId: userId })
 
       toast.success("You've joined the challenge!")
       router.push('/dashboard')

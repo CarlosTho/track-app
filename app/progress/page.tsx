@@ -18,32 +18,22 @@ import { challengeDayProgress } from '@/lib/easternTime'
 import { getChallengeEndAt, isChallengeTimeComplete } from '@/lib/firestore/challenges'
 
 function CongratulationsScreen({
-  myName,
-  partnerName,
-  myMeals,
-  partnerMeals,
-  myCompliance,
-  partnerCompliance,
-  myStreak,
-  partnerStreak,
+  members,
   totalDays,
 }: {
-  myName: string
-  partnerName: string
-  myMeals: Meal[]
-  partnerMeals: Meal[]
-  myCompliance: number
-  partnerCompliance: number
-  myStreak: number
-  partnerStreak: number
+  members: Array<{
+    id: string
+    name: string
+    meals: Meal[]
+    compliance: number
+    streak: number
+    isMe: boolean
+  }>
   totalDays: number
 }) {
-  const winner =
-    myCompliance > partnerCompliance
-      ? myName
-      : partnerCompliance > myCompliance
-        ? partnerName
-        : null
+  const maxCompliance = Math.max(...members.map((m) => m.compliance))
+  const winners = members.filter((m) => m.compliance === maxCompliance)
+  const hasTie = winners.length > 1
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12 text-center">
@@ -60,28 +50,25 @@ function CongratulationsScreen({
       </p>
 
       {/* Winner banner */}
-      {winner ? (
+      {!hasTie ? (
         <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-4 mb-8 text-white">
           <p className="text-sm font-medium opacity-90">Winner</p>
-          <p className="text-2xl font-bold">{winner} 🏆</p>
+          <p className="text-2xl font-bold">{winners[0]?.name} 🏆</p>
           <p className="text-sm opacity-80 mt-1">
-            {winner === myName ? myCompliance : partnerCompliance}% compliance
+            {winners[0]?.compliance ?? 0}% compliance
           </p>
         </div>
       ) : (
         <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-4 mb-8 text-white">
           <p className="text-sm font-medium opacity-90">It&apos;s a tie!</p>
-          <p className="text-2xl font-bold">You both win 🤝</p>
-          <p className="text-sm opacity-80 mt-1">{myCompliance}% compliance each</p>
+          <p className="text-2xl font-bold">{winners.map((w) => w.name).join(', ')} win 🤝</p>
+          <p className="text-sm opacity-80 mt-1">{maxCompliance}% compliance</p>
         </div>
       )}
 
       {/* Stats comparison */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        {[
-          { name: myName, meals: myMeals, compliance: myCompliance, streak: myStreak, isMe: true },
-          { name: partnerName, meals: partnerMeals, compliance: partnerCompliance, streak: partnerStreak, isMe: false },
-        ].map(({ name, meals, compliance, streak, isMe }) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        {members.map(({ name, meals, compliance, streak, isMe }) => (
           <div key={name} className={`bg-white rounded-2xl p-5 shadow-sm border ${isMe ? 'border-orange-200' : 'border-blue-200'}`}>
             <p className={`text-sm font-semibold mb-3 ${isMe ? 'text-orange-600' : 'text-blue-600'}`}>{name}</p>
             <div className="space-y-3">
@@ -120,20 +107,24 @@ function CongratulationsScreen({
 
 function ProgressContent() {
   const { user, userDoc } = useAuth()
-  const { challenge, partner, loading } = useChallenge()
+  const { challenge, partners, loading } = useChallenge()
 
   const [myMeals, setMyMeals] = useState<Meal[]>([])
-  const [partnerMeals, setPartnerMeals] = useState<Meal[]>([])
+  const [partnerMealsMap, setPartnerMealsMap] = useState<Record<string, Meal[]>>({})
   const [timeTick, setTimeTick] = useState(0)
 
   const myStreak = useMemo(
     () => (challenge ? computeMealStreaks(myMeals, challenge.startDate, challenge.endDate) : null),
     [myMeals, challenge?.startDate, challenge?.endDate]
   )
-  const partnerStreak = useMemo(
-    () => (challenge ? computeMealStreaks(partnerMeals, challenge.startDate, challenge.endDate) : null),
-    [partnerMeals, challenge?.startDate, challenge?.endDate]
-  )
+  const partnerStreakById = useMemo(() => {
+    if (!challenge) return {}
+    const entries = partners.map((member) => {
+      const meals = partnerMealsMap[member.id] ?? []
+      return [member.id, computeMealStreaks(meals, challenge.startDate, challenge.endDate)]
+    })
+    return Object.fromEntries(entries) as Record<string, ReturnType<typeof computeMealStreaks>>
+  }, [partners, partnerMealsMap, challenge?.startDate, challenge?.endDate])
 
   useEffect(() => {
     if (!challenge || !user) return
@@ -147,15 +138,25 @@ function ProgressContent() {
   }, [challenge, user])
 
   useEffect(() => {
-    if (!challenge || !partner) return
-    return subscribeMealsForDateRange(
-      challenge.id,
-      partner.id,
-      challenge.startDate,
-      challenge.endDate,
-      setPartnerMeals
+    if (!challenge || partners.length === 0) {
+      setPartnerMealsMap({})
+      return
+    }
+    const unsubscribes = partners.map((member) =>
+      subscribeMealsForDateRange(
+        challenge.id,
+        member.id,
+        challenge.startDate,
+        challenge.endDate,
+        (meals) => {
+          setPartnerMealsMap((prev) => ({ ...prev, [member.id]: meals }))
+        }
+      )
     )
-  }, [challenge, partner])
+    return () => {
+      unsubscribes.forEach((unsub) => unsub?.())
+    }
+  }, [challenge, partners])
 
   useEffect(() => {
     if (!challenge || challenge.status !== 'active') return
@@ -188,14 +189,34 @@ function ProgressContent() {
   }
 
   const myName = userDoc?.name ?? user?.displayName ?? 'You'
-  const partnerName = partner ? getUserDisplayName(partner) : 'Partner'
-
   const myCompliance = myMeals.length > 0
     ? Math.round((myMeals.filter((m) => m.isCompliant).length / myMeals.length) * 100)
     : 0
-  const partnerCompliance = partnerMeals.length > 0
-    ? Math.round((partnerMeals.filter((m) => m.isCompliant).length / partnerMeals.length) * 100)
-    : 0
+
+  const members = [
+    {
+      id: user?.uid ?? 'me',
+      name: userDoc?.name ?? user?.displayName ?? 'You',
+      meals: myMeals,
+      compliance: myCompliance,
+      streak: myStreak?.longestStreak ?? 0,
+      isMe: true,
+    },
+    ...partners.map((member) => {
+      const meals = partnerMealsMap[member.id] ?? []
+      const compliance = meals.length > 0
+        ? Math.round((meals.filter((m) => m.isCompliant).length / meals.length) * 100)
+        : 0
+      return {
+        id: member.id,
+        name: getUserDisplayName(member),
+        meals,
+        compliance,
+        streak: partnerStreakById[member.id]?.longestStreak ?? 0,
+        isMe: false,
+      }
+    }),
+  ]
 
   const { totalDays, currentDay } = challengeDayProgress(challenge.startDate, challenge.endDate)
   void timeTick
@@ -219,14 +240,7 @@ function ProgressContent() {
   if (challenge.status === 'completed' || isTimeComplete) {
     return (
       <CongratulationsScreen
-        myName={myName}
-        partnerName={partnerName}
-        myMeals={myMeals}
-        partnerMeals={partnerMeals}
-        myCompliance={myCompliance}
-        partnerCompliance={partnerCompliance}
-        myStreak={myStreak?.longestStreak ?? 0}
-        partnerStreak={partnerStreak?.longestStreak ?? 0}
+        members={members}
         totalDays={totalDays}
       />
     )
@@ -261,15 +275,16 @@ function ProgressContent() {
           startDate={challenge.startDate}
           endDate={challenge.endDate}
         />
-        {partner && (
+        {partners.map((member) => (
           <StatsCard
-            name={partnerName}
-            meals={partnerMeals}
-            streak={partnerStreak}
+            key={member.id}
+            name={getUserDisplayName(member)}
+            meals={partnerMealsMap[member.id] ?? []}
+            streak={partnerStreakById[member.id]}
             startDate={challenge.startDate}
             endDate={challenge.endDate}
           />
-        )}
+        ))}
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
@@ -282,17 +297,17 @@ function ProgressContent() {
         />
       </div>
 
-      {partner && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-900 mb-1">{partnerName}&apos;s Calendar</h2>
+      {partners.map((member) => (
+        <div key={member.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+          <h2 className="font-semibold text-gray-900 mb-1">{getUserDisplayName(member)}&apos;s Calendar</h2>
           <p className="text-xs text-gray-400 mb-4">Green = fully compliant · Red = broke a rule · Gray = no logs</p>
           <CalendarHeatmap
-            meals={partnerMeals}
+            meals={partnerMealsMap[member.id] ?? []}
             startDate={challenge.startDate}
             endDate={challenge.endDate}
           />
         </div>
-      )}
+      ))}
     </div>
   )
 }
