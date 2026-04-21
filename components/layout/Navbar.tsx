@@ -70,16 +70,16 @@ export function Navbar() {
       </nav>
 
       {/* Mobile bottom tab bar */}
-      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-        <div className="relative mx-auto max-w-md px-4 pt-2">
-          <div className="grid grid-cols-4 items-end text-[11px]">
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+        <div className="relative mx-auto max-w-md px-3 pt-1.5">
+          <div className="grid grid-cols-4 items-end text-[10px]">
             <Link
               href="/dashboard"
-              className={`flex flex-col items-center gap-1 py-2 transition-colors ${
+              className={`flex flex-col items-center gap-0.5 py-1.5 transition-colors ${
                 isActive('/dashboard') ? 'text-orange-500' : 'text-gray-400'
               }`}
             >
-              <House className="h-5 w-5" />
+              <House className="h-4 w-4" />
               Home
             </Link>
 
@@ -87,29 +87,29 @@ export function Navbar() {
               <Link
                 href="/log"
                 aria-label="Log meal"
-                className="tp-fab-shadow mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-white transition-transform active:scale-95"
+                className="tp-fab-shadow mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500 text-white transition-transform active:scale-95"
               >
-                <Plus className="h-7 w-7" />
+                <Plus className="h-6 w-6" />
               </Link>
             </div>
 
             <Link
               href="/progress"
-              className={`flex flex-col items-center gap-1 py-2 transition-colors ${
+              className={`flex flex-col items-center gap-0.5 py-1.5 transition-colors ${
                 isActive('/progress') ? 'text-orange-500' : 'text-gray-400'
               }`}
             >
-              <BarChart2 className="h-5 w-5" />
+              <BarChart2 className="h-4 w-4" />
               Progress
             </Link>
 
             <Link
               href="/profile"
-              className={`flex flex-col items-center gap-1 py-2 transition-colors ${
+              className={`flex flex-col items-center gap-0.5 py-1.5 transition-colors ${
                 isActive('/profile') ? 'text-orange-500' : 'text-gray-400'
               }`}
             >
-              <User className="h-5 w-5" />
+              <User className="h-4 w-4" />
               Profile
             </Link>
           </div>
