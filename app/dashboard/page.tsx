@@ -280,7 +280,7 @@ function DashboardContent() {
             <p className="text-sm font-medium text-gray-500 mt-0.5">
               Today — {easternFormat(new Date(), 'MMM d, yyyy')}
             </p>
-            <p className="text-sm font-medium text-gray-700 mt-1">
+            <p className="mt-2 mb-1 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-[0.95rem] font-semibold text-orange-800">
               Reminder: {dayReminder}
             </p>
           </div>
