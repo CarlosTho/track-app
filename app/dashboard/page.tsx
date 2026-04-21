@@ -261,11 +261,6 @@ function DashboardContent() {
           Log in your meal to update your streak!
         </div>
       )}
-      {/* Mobile-first placement so feed is visible sooner */}
-      <div className="md:hidden mb-4 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <h2 className="font-semibold text-gray-900 mb-4">Activity Feed</h2>
-        <ActivityFeed challengeId={challenge.id} currentUserId={user?.uid ?? ''} />
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -317,6 +312,11 @@ function DashboardContent() {
           </div>
         </div>
       )}
+      </div>
+
+      <div className="md:hidden mt-6 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+        <h2 className="font-semibold text-gray-900 mb-4">Activity Feed</h2>
+        <ActivityFeed challengeId={challenge.id} currentUserId={user?.uid ?? ''} />
       </div>
 
       <div className="hidden md:block mt-8 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
