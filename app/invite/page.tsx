@@ -16,7 +16,7 @@ function InviteContent() {
   if (!user) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-start sm:items-center justify-center px-4 pt-8 pb-28 sm:py-12">
       <div className="w-full max-w-lg min-w-0">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Start Your Challenge</h1>
