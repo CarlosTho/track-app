@@ -166,7 +166,7 @@ function FeedItem({ meal, user, currentUserId }: FeedEntry & { currentUserId: st
         )}
       </div>
       {isOwner && (
-        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => { setEditDesc(meal.description); setEditCompliant(meal.isCompliant); setEditing(true) }}
             className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-gray-600 hover:bg-orange-100 hover:text-orange-600"
