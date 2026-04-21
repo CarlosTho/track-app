@@ -92,10 +92,8 @@ export async function claimInviteCode(
     const data = snap.data() as InviteCode
     if (new Date(data.expiresAt) < new Date()) throw new Error('Invite code expired')
     if (data.creatorId === joiningUserId) throw new Error('You cannot join your own challenge')
-    // Allow retry: if already claimed by this same user, let them proceed
-    if (data.used && data.claimedBy !== joiningUserId) throw new Error('Invite code already used')
-
-    tx.update(ref, { used: true, claimedBy: joiningUserId })
+    // Invite codes are reusable for the challenge window.
+    // Membership uniqueness is enforced by joinChallenge().
     return { challengeId: data.challengeId, creatorId: data.creatorId }
   })
 
