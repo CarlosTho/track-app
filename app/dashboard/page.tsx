@@ -216,7 +216,7 @@ function DashboardContent() {
   const shouldPromptMealLog = myMeals.length === 0
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="max-w-6xl mx-auto px-4 pt-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:py-6">
       {completionPopup}
       <div className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-1">The Challenge</p>
