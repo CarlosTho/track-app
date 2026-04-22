@@ -297,7 +297,7 @@ function DashboardContent() {
           <div>
             <h1 className="text-3xl font-extrabold">
               <span className="bg-gradient-to-r from-orange-500 to-amber-400 bg-clip-text text-transparent">{greeting},</span>{' '}
-              <span className="text-gray-900">{firstName}!</span>
+              <span className="text-gray-900">{firstName}{userDoc?.uiTheme === 'melon' ? ' ❤️' : '!'}</span>
             </h1>
             <p className="text-sm font-medium text-gray-500 mt-0.5">
               Today — {easternFormat(new Date(), 'MMM d, yyyy')}

@@ -51,7 +51,7 @@ export function SecretChallenge() {
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6 relative overflow-hidden">
       {showConfetti && (
         <div className="pointer-events-none fixed inset-0 z-[90]" aria-hidden>
-          {Array.from({ length: 42 }).map((_, i) => (
+          {Array.from({ length: 80 }).map((_, i) => (
             <span
               key={i}
               className="tp-confetti-piece"
