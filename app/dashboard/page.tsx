@@ -24,7 +24,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getActiveInviteCodeForUser, generateInviteCode } from '@/lib/firestore/inviteCodes'
-import { cancelChallenge, isChallengeActiveNow, isChallengeTimeComplete } from '@/lib/firestore/challenges'
+import { cancelChallenge, isChallengeActiveNow, isChallengeTimeComplete, leaveChallenge } from '@/lib/firestore/challenges'
 import { resetLoginStreak } from '@/lib/firestore/loginStreak'
 import { updateUserDoc } from '@/lib/firestore/users'
 import { getUserDisplayName } from '@/lib/userDisplay'
@@ -112,6 +112,7 @@ function DashboardContent() {
   const [loadingCode, setLoadingCode] = useState(false)
   const [copied, setCopied] = useState(false)
   const [ending, setEnding] = useState(false)
+  const [leaving, setLeaving] = useState(false)
   const [showCongratsPopup, setShowCongratsPopup] = useState(false)
 
   const handleEndChallenge = async () => {
@@ -136,6 +137,27 @@ function DashboardContent() {
       toast.error('Could not end challenge. Please try again.')
     } finally {
       setEnding(false)
+    }
+  }
+
+  const handleLeaveChallenge = async () => {
+    if (!user || !challenge) return
+    if (!confirm('Leave this challenge? The challenge will continue for the other members.')) return
+    setLeaving(true)
+    try {
+      await leaveChallenge(challenge.id, user.uid)
+      await resetLoginStreak(user.uid).catch((err) => {
+        console.warn('Failed to reset login streak on leave:', err)
+      })
+      await updateUserDoc(user.uid, { challengeId: undefined, partnerId: undefined })
+      toast.success('You left the challenge.')
+      router.push('/invite')
+    } catch (err) {
+      console.error('Failed to leave challenge:', err)
+      const message = err instanceof Error ? err.message : 'Could not leave challenge. Please try again.'
+      toast.error(message)
+    } finally {
+      setLeaving(false)
     }
   }
 
@@ -293,6 +315,11 @@ function DashboardContent() {
             {isChallengeCreator && (
               <Button variant="outline" size="sm" onClick={handleEndChallenge} disabled={ending} className="text-red-500 border-red-200 hover:bg-red-50">
                 {ending ? 'Ending...' : 'End Challenge'}
+              </Button>
+            )}
+            {!isChallengeCreator && (
+              <Button variant="outline" size="sm" onClick={handleLeaveChallenge} disabled={leaving} className="text-red-500 border-red-200 hover:bg-red-50">
+                {leaving ? 'Leaving...' : 'Leave Challenge'}
               </Button>
             )}
           </div>

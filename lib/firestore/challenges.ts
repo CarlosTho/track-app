@@ -113,3 +113,20 @@ export async function cancelChallenge(challengeId: string): Promise<void> {
     status: 'cancelled',
   })
 }
+
+export async function leaveChallenge(challengeId: string, userId: string): Promise<void> {
+  const ref = doc(db, 'challenges', challengeId)
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) throw new Error('Challenge not found')
+
+    const challenge = snap.data() as Challenge
+    const currentUsers = (challenge.users ?? []).filter(Boolean)
+    if (!currentUsers.includes(userId)) return
+    if (currentUsers[0] === userId) {
+      throw new Error('The challenge creator cannot leave. End the challenge instead.')
+    }
+    const updatedUsers = currentUsers.filter((uid) => uid !== userId)
+    tx.update(ref, { users: updatedUsers })
+  })
+}
