@@ -9,6 +9,8 @@ import {
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   updateProfile,
+  setPersistence,
+  browserLocalPersistence,
 } from 'firebase/auth'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
@@ -23,6 +25,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthContextValue['user']>(null)
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setPersistence(auth, browserLocalPersistence).catch((err) => {
+      console.warn('Failed to set auth persistence:', err)
+    })
+  }, [])
 
   useEffect(() => {
     let unsubDoc: (() => void) | null = null
@@ -76,10 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.uid, userDoc?.challengeId])
 
   const signIn = async (email: string, password: string) => {
+    await setPersistence(auth, browserLocalPersistence)
     await signInWithEmailAndPassword(auth, email, password)
   }
 
   const signUp = async (email: string, password: string, name: string) => {
+    await setPersistence(auth, browserLocalPersistence)
     const cred = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(cred.user, { displayName: name })
     await createUserDoc(cred.user.uid, {
@@ -92,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signInWithGoogle = async () => {
+    await setPersistence(auth, browserLocalPersistence)
     const cred = await signInWithPopup(auth, googleProvider)
     const existing = await getUserDoc(cred.user.uid)
     if (!existing) {
