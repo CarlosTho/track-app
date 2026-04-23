@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, X } from 'lucide-react'
+import { Camera, X, ImagePlus, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MealTypeSelector } from './MealTypeSelector'
@@ -31,7 +31,8 @@ export function MealForm({ userId, challenge }: MealFormProps) {
   const [submitting, setSubmitting] = useState(false)
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const libraryInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!photo) {
@@ -59,7 +60,8 @@ export function MealForm({ userId, challenge }: MealFormProps) {
 
   const clearPhoto = () => {
     setPhoto(null)
-    if (fileInputRef.current) fileInputRef.current.value = ''
+    if (libraryInputRef.current) libraryInputRef.current.value = ''
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
   useEffect(() => {
@@ -73,19 +75,24 @@ export function MealForm({ userId, challenge }: MealFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!description.trim()) return
+    if (!photo) {
+      toast.error('Please add a photo of your meal')
+      return
+    }
 
     setSubmitting(true)
     try {
       const today = easternDateString()
-      let photoUrl: string | undefined
-      if (photo) {
-        try {
-          photoUrl = await uploadMealPhoto(userId, photo)
-        } catch (uploadErr) {
-          console.error('uploadMealPhoto error:', uploadErr)
-          toast.error('Photo upload failed, logging meal without photo')
-        }
+      let photoUrl: string
+      try {
+        photoUrl = await uploadMealPhoto(userId, photo)
+      } catch (uploadErr) {
+        console.error('uploadMealPhoto error:', uploadErr)
+        toast.error('Photo upload failed. Please try again.')
+        setSubmitting(false)
+        return
       }
+
       await logMeal({
         userId,
         challengeId: challenge.id,
@@ -143,47 +150,106 @@ export function MealForm({ userId, challenge }: MealFormProps) {
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">Photo (optional)</label>
+        <div className="flex items-baseline justify-between">
+          <label className="text-sm font-medium text-gray-700">
+            Photo <span className="text-red-500">*</span>
+          </label>
+          <span className="text-xs font-semibold text-orange-600">Required</span>
+        </div>
+
         <input
-          ref={fileInputRef}
+          ref={libraryInputRef}
           type="file"
           accept="image/*"
           onChange={handlePhotoChange}
           className="hidden"
         />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handlePhotoChange}
+          className="hidden"
+        />
+
         {photoPreview ? (
-          <div className="relative inline-block">
-            <img
-              src={photoPreview}
-              alt="Meal preview"
-              className="h-32 w-32 rounded-lg object-cover border border-gray-200"
-            />
-            <button
-              type="button"
-              onClick={clearPhoto}
-              className="absolute -top-2 -right-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-800 text-white shadow hover:bg-gray-900"
-              aria-label="Remove photo"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+          <div className="space-y-2">
+            <div className="relative w-full overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 aspect-[4/3]">
+              <img
+                src={photoPreview}
+                alt="Meal preview"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={clearPhoto}
+                className="absolute top-2 right-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/75 active:scale-95"
+                aria-label="Remove photo"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/55 to-transparent p-3 flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-white/90 truncate">
+                  {photo?.name ?? 'Selected photo'}
+                </p>
+                <div className="flex gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-gray-800 shadow-sm hover:bg-white active:scale-95"
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                    Retake
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => libraryInputRef.current?.click()}
+                    className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-gray-800 shadow-sm hover:bg-white active:scale-95"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Change
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-600 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-600"
-          >
-            <Camera className="h-4 w-4" />
-            Add photo
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="group flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition-colors hover:border-orange-400 hover:bg-orange-50 active:scale-[0.98]"
+            >
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-orange-100 text-orange-600 transition-colors group-hover:bg-orange-500 group-hover:text-white">
+                <Camera className="h-5 w-5" />
+              </span>
+              <span className="text-sm font-semibold text-gray-700 group-hover:text-orange-600">
+                Take Photo
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => libraryInputRef.current?.click()}
+              className="group flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition-colors hover:border-orange-400 hover:bg-orange-50 active:scale-[0.98]"
+            >
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-orange-100 text-orange-600 transition-colors group-hover:bg-orange-500 group-hover:text-white">
+                <ImagePlus className="h-5 w-5" />
+              </span>
+              <span className="text-sm font-semibold text-gray-700 group-hover:text-orange-600">
+                Upload
+              </span>
+            </button>
+          </div>
         )}
+        <p className="text-xs text-gray-400">JPG, PNG, or HEIC · up to 10MB</p>
       </div>
 
       <Button
         type="submit"
         className="w-full bg-orange-500 hover:bg-orange-600"
         size="lg"
-        disabled={submitting || !description.trim()}
+        disabled={submitting || !description.trim() || !photo}
       >
         {submitting ? 'Logging...' : 'Log Meal'}
       </Button>
