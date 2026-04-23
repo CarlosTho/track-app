@@ -295,7 +295,7 @@ function DashboardContent() {
         </div>
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h1 className="text-3xl font-extrabold">
+            <h1 className="text-2xl sm:text-3xl font-extrabold">
               <span className="bg-gradient-to-r from-orange-500 to-amber-400 bg-clip-text text-transparent">{greeting},</span>{' '}
               <span className="text-gray-900">{firstName}{userDoc?.uiTheme === 'melon' ? ' ❤️' : '!'}</span>
             </h1>

@@ -164,6 +164,22 @@ function FeedItem({ meal, user, currentUserId }: FeedEntry & { currentUserId: st
             &ldquo;{meal.notes}&rdquo;
           </p>
         )}
+        {meal.photoUrl && (
+          <a
+            href={meal.photoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1.5 inline-block"
+          >
+            <img
+              src={meal.photoUrl}
+              alt="Meal"
+              className="h-14 w-14 rounded-md object-cover border border-gray-200 hover:opacity-90"
+              referrerPolicy="no-referrer"
+              loading="lazy"
+            />
+          </a>
+        )}
       </div>
       {isOwner && (
         <div className="flex items-center gap-1">
