@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Sparkles } from 'lucide-react'
+import { CheckCircle2, Heart } from 'lucide-react'
 import { MELON_WORD } from '@/lib/melonTheme'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { updateUserDoc } from '@/lib/firestore/users'
@@ -12,14 +12,14 @@ export function SecretChallenge() {
   const { user, userDoc } = useAuth()
   const [value, setValue] = useState('')
   const [tries, setTries] = useState(0)
-  const [showConfetti, setShowConfetti] = useState(false)
+  const [showHearts, setShowHearts] = useState(false)
   const [saving, setSaving] = useState(false)
-  const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const heartsTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const unlocked = userDoc?.uiTheme === 'melon'
 
   useEffect(() => {
     return () => {
-      if (confettiTimer.current) clearTimeout(confettiTimer.current)
+      if (heartsTimer.current) clearTimeout(heartsTimer.current)
     }
   }, [])
 
@@ -36,9 +36,9 @@ export function SecretChallenge() {
       setSaving(true)
       try {
         await updateUserDoc(user.uid, { uiTheme: 'melon' })
-        setShowConfetti(true)
-        if (confettiTimer.current) clearTimeout(confettiTimer.current)
-        confettiTimer.current = setTimeout(() => setShowConfetti(false), 2200)
+        setShowHearts(true)
+        if (heartsTimer.current) clearTimeout(heartsTimer.current)
+        heartsTimer.current = setTimeout(() => setShowHearts(false), 4500)
       } catch (err) {
         console.warn('Failed to save melon theme:', err)
       } finally {
@@ -49,26 +49,30 @@ export function SecretChallenge() {
 
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6 relative overflow-hidden">
-      {showConfetti && (
+      {showHearts && (
         <div className="pointer-events-none fixed inset-0 z-[90]" aria-hidden>
-          {Array.from({ length: 80 }).map((_, i) => (
-            <span
-              key={i}
-              className="tp-confetti-piece"
-              style={{
-                left: `${(i * 2.41) % 100}%`,
-                backgroundColor: ['#F6556F', '#fb923c', '#facc15', '#34d399', '#60a5fa'][i % 5],
-                animationDelay: `${(i % 14) * 0.06}s`,
-                animationDuration: `${1.4 + (i % 6) * 0.18}s`,
-                transform: `rotate(${(i * 37) % 360}deg)`,
-              }}
-            />
-          ))}
+          {Array.from({ length: 36 }).map((_, i) => {
+            const hearts = ['❤️', '💖', '💕', '💗', '💘']
+            return (
+              <span
+                key={i}
+                className="tp-heart-rise"
+                style={{
+                  left: `${(i * 7.3) % 100}%`,
+                  fontSize: `${22 + (i % 5) * 6}px`,
+                  animationDelay: `${(i % 10) * 0.18}s`,
+                  animationDuration: `${3.2 + (i % 6) * 0.35}s`,
+                }}
+              >
+                {hearts[i % hearts.length]}
+              </span>
+            )
+          })}
         </div>
       )}
 
       <div className="flex items-center gap-2 mb-2">
-        <Sparkles className="w-4 h-4 text-orange-500" />
+        <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
         <h3 className="font-semibold text-gray-900">Guess the word</h3>
       </div>
       <p className="text-sm text-gray-500 mb-4">(for a surprise)</p>
@@ -77,7 +81,7 @@ export function SecretChallenge() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm font-medium text-pink-600 bg-pink-50 border border-pink-200 rounded-xl px-3 py-2">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4" />
-            You got it mi amor ❤️
+            Te amo, bebeshita 💖
           </div>
           <Button
             type="button"

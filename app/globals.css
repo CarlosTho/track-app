@@ -241,6 +241,31 @@
   animation-fill-mode: forwards;
 }
 
+@keyframes tp-heart-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(10vh) scale(0.6) rotate(-8deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-110vh) scale(1.2) rotate(8deg);
+  }
+}
+.tp-heart-rise {
+  position: fixed;
+  bottom: -8vh;
+  font-size: 28px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(246, 85, 111, 0.4));
+  animation-name: tp-heart-rise;
+  animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+  animation-fill-mode: forwards;
+  will-change: transform, opacity;
+}
+
 /* ============================================================
    Secret challenge: melon mode (global orange -> pink)
    ============================================================ */

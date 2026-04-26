@@ -1,4 +1,4 @@
-export const MELON_WORD = 'melon'
+export const MELON_WORD = 'bebeshita'
 export const MELON_COLOR = '#F6556F'
 
 function isBrowser(): boolean {

@@ -8,8 +8,6 @@ import { Input } from '@/components/ui/input'
 import { MealTypeSelector } from './MealTypeSelector'
 import { ComplianceToggle } from './ComplianceToggle'
 import { logMeal } from '@/lib/firestore/meals'
-import { updateStreak } from '@/lib/firestore/streaks'
-import { getMealsForDateRange } from '@/lib/firestore/meals'
 import { uploadMealPhoto } from '@/lib/firestore/mealPhotos'
 import { suggestCompliance } from '@/lib/rules-engine'
 import type { Challenge, MealType } from '@/lib/types'
@@ -103,15 +101,6 @@ export function MealForm({ userId, challenge }: MealFormProps) {
         notes: notes.trim() || undefined,
         photoUrl,
       })
-
-      // Streak update is best-effort — don't block navigation if index not ready
-      try {
-        const todaysMeals = await getMealsForDateRange(challenge.id, userId, today, today)
-        const allCompliant = todaysMeals.every((m) => m.isCompliant)
-        await updateStreak(userId, allCompliant)
-      } catch (streakErr) {
-        console.warn('Streak update skipped:', streakErr)
-      }
 
       toast.success('Meal logged!')
       router.push('/dashboard')
