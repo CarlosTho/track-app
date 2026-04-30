@@ -11,6 +11,7 @@ import type { Meal, UserDoc } from '@/lib/types'
 import { UserColumn } from '@/components/dashboard/UserColumn'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 import { ChallengeProgress } from '@/components/dashboard/ChallengeProgress'
+import { ExtendChallengeDialog } from '@/components/dashboard/ExtendChallengeDialog'
 import { SecretChallenge } from '@/components/dashboard/SecretChallenge'
 import { challengeDayProgress, easternFormat } from '@/lib/easternTime'
 import Link from 'next/link'
@@ -114,6 +115,7 @@ function DashboardContent() {
   const [ending, setEnding] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [showCongratsPopup, setShowCongratsPopup] = useState(false)
+  const [showExtendDialog, setShowExtendDialog] = useState(false)
 
   const handleEndChallenge = async () => {
     if (!confirm('End this challenge? All members will be able to start a new one.')) return
@@ -283,6 +285,11 @@ function DashboardContent() {
   return (
     <div className="max-w-6xl mx-auto px-4 pt-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:py-6">
       {completionPopup}
+      <ExtendChallengeDialog
+        open={showExtendDialog}
+        onOpenChange={setShowExtendDialog}
+        challenge={challenge}
+      />
       <div className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-1">The Challenge</p>
         <div className="flex items-center gap-3 flex-wrap mb-4">
@@ -306,10 +313,20 @@ function DashboardContent() {
               Reminder: {dayReminder}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {isChallengeCreator && (
               <Button variant="outline" size="sm" onClick={handleShareCode} disabled={loadingCode}>
                 {loadingCode ? 'Loading...' : 'Share Code'}
+              </Button>
+            )}
+            {isChallengeCreator && (challenge.durationDays ?? 0) < 30 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowExtendDialog(true)}
+                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+              >
+                Extend
               </Button>
             )}
             {isChallengeCreator && (

@@ -99,6 +99,46 @@ export async function joinChallenge(challengeId: string, userId: string): Promis
   })
 }
 
+export async function extendChallenge(
+  challengeId: string,
+  newDurationDays: number
+): Promise<Challenge> {
+  if (!Number.isFinite(newDurationDays) || newDurationDays <= 0) {
+    throw new Error('Invalid duration')
+  }
+
+  const ref = doc(db, 'challenges', challengeId)
+  return runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) throw new Error('Challenge not found')
+
+    const challenge = snap.data() as Challenge
+    if (challenge.status !== 'active') {
+      throw new Error('Only active challenges can be extended')
+    }
+
+    const currentDuration =
+      challenge.durationDays ?? diffCalendarDays(challenge.endDate, challenge.startDate) + 1
+
+    if (newDurationDays <= currentDuration) {
+      throw new Error('New duration must be longer than the current challenge')
+    }
+
+    const startAt = getChallengeStartAt(challenge)
+    const newEndAt = new Date(startAt.getTime() + newDurationDays * DAY_MS).toISOString()
+    const newEndDate = addCalendarDays(challenge.startDate, newDurationDays - 1)
+
+    const updates = {
+      durationDays: newDurationDays,
+      endAt: newEndAt,
+      endDate: newEndDate,
+    }
+
+    tx.update(ref, updates)
+    return { ...challenge, ...updates }
+  })
+}
+
 export async function completeChallenge(challengeId: string): Promise<void> {
   const ref = doc(db, 'challenges', challengeId)
   await updateDoc(ref, {
