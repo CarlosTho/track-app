@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { createChallenge } from '@/lib/firestore/challenges'
+import { createChallenge, getChallenge, isChallengeActiveNow } from '@/lib/firestore/challenges'
 import { generateInviteCode } from '@/lib/firestore/inviteCodes'
-import { updateUserDoc } from '@/lib/firestore/users'
+import { getUserDoc, updateUserDoc } from '@/lib/firestore/users'
 import type { Challenge } from '@/lib/types'
 import { InviteCodeDisplay } from './InviteCodeDisplay'
 import { toast } from 'sonner'
@@ -31,8 +31,22 @@ export function CreateChallengeForm({ userId, onCreated }: CreateChallengeFormPr
     }
     setLoading(true)
     try {
+      // Guard: don't silently overwrite an existing active challenge.
+      // That would orphan the partner on the previous challenge doc.
+      const existingUser = await getUserDoc(userId)
+      if (existingUser?.challengeId) {
+        const existingChallenge = await getChallenge(existingUser.challengeId)
+        if (existingChallenge && isChallengeActiveNow(existingChallenge)) {
+          toast.error(
+            'You are already in an active challenge. End or leave it before starting a new one.'
+          )
+          setLoading(false)
+          return
+        }
+      }
+
       const challenge = await createChallenge(userId, { noAddedSugar, noAddedSalt }, duration)
-      await updateUserDoc(userId, { challengeId: challenge.id })
+      await updateUserDoc(userId, { challengeId: challenge.id, partnerId: undefined })
       const code = await generateInviteCode(userId, challenge.id)
       setInviteCode(code)
       onCreated(challenge)

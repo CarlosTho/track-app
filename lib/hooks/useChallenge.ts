@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase'
 import type { Challenge, UserDoc } from '@/lib/types'
 import { useAuth } from './useAuth'
 import { completeChallenge, getChallengeEndAt, isChallengeActiveNow } from '@/lib/firestore/challenges'
+import { updateUserDoc } from '@/lib/firestore/users'
 
 interface UseChallengeReturn {
   challenge: Challenge | null
@@ -21,6 +22,7 @@ export function useChallenge(): UseChallengeReturn {
   const [partners, setPartners] = useState<UserDoc[]>([])
   const [loading, setLoading] = useState(true)
   const autoEndingRef = useRef(false)
+  const selfHealingRef = useRef(false)
 
   useEffect(() => {
     // Wait until auth is fully resolved before deciding anything
@@ -82,9 +84,18 @@ export function useChallenge(): UseChallengeReturn {
   useEffect(() => {
     if (!challenge || challenge.status !== 'active') return
     const endAt = getChallengeEndAt(challenge)
-    const msLeft = endAt.getTime() - Date.now()
+
+    // setTimeout uses a 32-bit signed int for the delay (~24.85 days max).
+    // Anything larger silently fires immediately, which would auto-complete
+    // long (e.g. 30-day) challenges on page load. Chain timers below this cap.
+    const MAX_TIMEOUT_MS = 2_147_483_647
 
     const runEnd = () => {
+      // Defensive: never complete a challenge whose end time hasn't actually arrived.
+      if (Date.now() < endAt.getTime()) {
+        timerId = scheduleNext()
+        return
+      }
       if (autoEndingRef.current) return
       autoEndingRef.current = true
       completeChallenge(challenge.id)
@@ -94,14 +105,44 @@ export function useChallenge(): UseChallengeReturn {
         })
     }
 
-    if (msLeft <= 0) {
-      runEnd()
-      return
+    const scheduleNext = (): ReturnType<typeof setTimeout> | null => {
+      const msLeft = endAt.getTime() - Date.now()
+      if (msLeft <= 0) {
+        runEnd()
+        return null
+      }
+      const delay = Math.min(msLeft, MAX_TIMEOUT_MS)
+      return setTimeout(() => {
+        timerId = scheduleNext()
+      }, delay)
     }
 
-    const timer = setTimeout(runEnd, msLeft)
-    return () => clearTimeout(timer)
+    let timerId = scheduleNext()
+    return () => {
+      if (timerId) clearTimeout(timerId)
+    }
   }, [challenge])
+
+  // Self-heal: if our user doc still points at a challenge that was cancelled
+  // (or where we've been removed from the users array), clear our own
+  // challengeId/partnerId so we get a clean slate. We can only mutate our
+  // own user doc per Firestore rules, so each side heals itself.
+  useEffect(() => {
+    if (!userDoc?.id || !userDoc.challengeId || !challenge) return
+    if (selfHealingRef.current) return
+
+    const wasRemoved = !(challenge.users ?? []).includes(userDoc.id)
+    const wasCancelled = challenge.status === 'cancelled'
+
+    if (!wasCancelled && !wasRemoved) return
+
+    selfHealingRef.current = true
+    updateUserDoc(userDoc.id, { challengeId: undefined, partnerId: undefined })
+      .catch((err) => {
+        console.warn('self-heal clearChallengeId failed:', err)
+        selfHealingRef.current = false
+      })
+  }, [challenge, userDoc?.id, userDoc?.challengeId])
 
   return {
     challenge,

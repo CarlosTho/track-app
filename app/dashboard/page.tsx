@@ -314,11 +314,9 @@ function DashboardContent() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {isChallengeCreator && (
-              <Button variant="outline" size="sm" onClick={handleShareCode} disabled={loadingCode}>
-                {loadingCode ? 'Loading...' : 'Share Code'}
-              </Button>
-            )}
+            <Button variant="outline" size="sm" onClick={handleShareCode} disabled={loadingCode}>
+              {loadingCode ? 'Loading...' : 'Share Code'}
+            </Button>
             {isChallengeCreator && (challenge.durationDays ?? 0) < 30 && (
               <Button
                 variant="outline"

@@ -161,10 +161,24 @@ function ProgressContent() {
   useEffect(() => {
     if (!challenge || challenge.status !== 'active') return
     const endAt = getChallengeEndAt(challenge)
-    const msLeft = endAt.getTime() - Date.now()
-    if (msLeft <= 0) return
-    const timer = setTimeout(() => setTimeTick((t) => t + 1), msLeft + 10)
-    return () => clearTimeout(timer)
+    const MAX_TIMEOUT_MS = 2_147_483_647
+
+    const scheduleNext = (): ReturnType<typeof setTimeout> | null => {
+      const msLeft = endAt.getTime() - Date.now()
+      if (msLeft <= 0) {
+        setTimeTick((t) => t + 1)
+        return null
+      }
+      const delay = Math.min(msLeft + 10, MAX_TIMEOUT_MS)
+      return setTimeout(() => {
+        timerId = scheduleNext()
+      }, delay)
+    }
+
+    let timerId = scheduleNext()
+    return () => {
+      if (timerId) clearTimeout(timerId)
+    }
   }, [challenge])
 
   if (loading) {

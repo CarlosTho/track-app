@@ -10,11 +10,18 @@ function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
 
 export async function createUserDoc(uid: string, data: Omit<UserDoc, 'id' | 'createdAt'>): Promise<void> {
   const ref = doc(db, 'users', uid)
-  await setDoc(ref, {
+  const existing = await getDoc(ref)
+  const payload: Record<string, unknown> = {
     ...stripUndefined(data as Record<string, unknown>),
     id: uid,
-    createdAt: new Date().toISOString(),
-  })
+  }
+  // Only stamp createdAt on first creation; never reset it on a "repair" merge.
+  if (!existing.exists()) {
+    payload.createdAt = new Date().toISOString()
+  }
+  // CRITICAL: merge=true so we never wipe challengeId / partnerId / uiTheme
+  // when AuthProvider repairs a missing `name` field.
+  await setDoc(ref, payload, { merge: true })
 }
 
 export async function getUserDoc(uid: string): Promise<UserDoc | null> {
